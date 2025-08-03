@@ -1,9 +1,9 @@
 const express = require('express');
-const app = express();
+const app = express(); 
 app.use(express.json());
 
 const productsRoutes = require('./routes/products');
-app.use(express.json());
+
 // Mount the products routes
 app.use('/products', productsRoutes);
 

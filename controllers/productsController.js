@@ -1,77 +1,92 @@
-const products = require('../models/product');
+const mongoose = require('mongoose');
+const Product = require('../models/product');
+
 
 //GET
-const getAllProducts =  (req,res) => {
-   
-    res.status(200).json({products});
+
+
+    const getAllProducts = async (req, res) => {
+    try {
+    const products = await Product.find();
+    res.status(200).json({ products });
+    } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch products', error });
+  }
 };
+
 
 //POST
-const createProduct =(req,res) => {
- // 1. Get the data from the request body
+const createProduct = async (req, res) => {
   const { title, price } = req.body;
 
- // 2. Validate data
   if (!title || price === undefined) {
-
- // 3. If missing, send back a 400 Bad Request response with a message
     return res.status(400).json({ message: 'Title and price are required.' });
   }
- // 4. Create a new product object
-  const newProduct = {
-    id: products.length + 1, // assign a simple incremental id
-    title,
-    price
-  };
-  
-  // 5. Add the new product to the products array
-  products.push(newProduct);
 
- 
-  // 6. Respond with 201 Created status and the new product
-  res.status(201).json(newProduct);
-};
+  try {
+    const newProduct = new Product({
+      _id: new mongoose.Types.ObjectId(),
+      title,
+      price
+    });
 
-
-//PUT
-const updateProduct = (req,res) => {
-    const id =parseInt(req.params.id); // Get the ID from URL and convert to number
-    const { title,price } = req.body;// Get new data from body
-
-    //Find index of product to update
-    const index = products.findIndex(p => p.id === id);
-
-     if (index === -1) {
-    // No product found with that ID
-    return res.status(404).json({ message: 'Product not found' });
+    await newProduct.save();
+    res.status(201).json(newProduct);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to create product', error });
   }
-
-   // Update the product fields, only if provided
-  if (title !== undefined) products[index].title = title;
-  if (price !== undefined) products[index].price = price;
-
-  // Respond with updated product
-  res.status(200).json(products[index]);
 };
 
-//DELETE
+// UPDATE
 
-const deleteProduct = (req,res) => {
-  const id= parseInt(req.params.id);
 
-  const index=products.findIndex(p =>p.id === id);
-  if(index === -1){
-    return res.status(404).json({message: "Product not found "});
+const updateProduct = async (req, res) => {
+  const { id } = req.params; // this is a string like "64e7f4c0c28e3cbb78912345"
+  const { title, price } = req.body;
+
+  try {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid product ID' });
+    }
+
+    const updated = await Product.findByIdAndUpdate(
+      id,
+      { title, price },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    res.status(200).json(updated);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to update product', error });
   }
-
-  
-  // Remove product from array
-  products.splice(index, 1);
-
-  // 204 means "No Content" — success with no response body
-  res.status(204).send();
-
 };
+
+
+// DELETE
+const deleteProduct = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid product ID' });
+    }
+
+    const result = await Product.findByIdAndDelete(id);
+
+    if (!result) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to delete product', error });
+  }
+};
+
 
 module.exports = {
   getAllProducts,

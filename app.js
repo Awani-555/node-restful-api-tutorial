@@ -1,13 +1,24 @@
 const express = require('express');
+const morgan = require('morgan');
 const app = express(); 
-app.use(express.json());
+const productsRoutes = require('./routes/products');
+const authRoutes = require('./routes/auth');
+const authenticateToken = require('./middleware/auth');
+
 require('dotenv').config();  // Load .env variables
 const mongoose = require('mongoose');
 
+app.use(morgan('dev'));
+app.use(express.json());
+
+app.use('/auth', authRoutes);
+
+// Protect product routes with JWT middleware
+app.use('/products', authenticateToken, productsRoutes);
 
 const mongoURI = process.env.MONGO_URI;;
 
-const productsRoutes = require('./routes/products');
+
 
 mongoose.connect(mongoURI)
 .then(() => console.log('Connected to MongoDB Atlas'))
